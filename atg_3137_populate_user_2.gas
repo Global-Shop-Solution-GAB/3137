@@ -1,0 +1,96 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Variable.Global.sOrder.Declare(String)
+Variable.Global.sJob.Declare(String)
+Variable.Global.sSuffix.Declare(String)
+Variable.Global.sUser2.Declare(String)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'SMC for Customer River Steel (Quote 1442)
+'10/3/10
+'Hook  17261
+
+'F.Intrinsic.Debug.InvokeDebugger
+F.Intrinsic.Debug.Stop
+
+V.Global.sJob.Set(V.Passed.009000)
+V.Global.sSuffix.Set(V.Passed.009001)
+V.Global.sOrder.Set(V.Passed.009002)
+
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+F.Intrinsic.Control.CallSub(Getuser2fromorder)
+F.Intrinsic.Control.CallSub(Writeuser2tojob)
+F.Intrinsic.Control.CallSub(Unload)
+
+Program.Sub.Main.End
+
+Program.Sub.GetUser2FromOrder.Start
+V.Local.sError.Declare(String)
+V.Local.sQuery.Declare(String)
+
+Function.Intrinsic.Control.SetErrorHandler("GetUser2FromOrder_Err")
+Function.Intrinsic.Control.ClearErrors
+
+F.Intrinsic.String.Concat("SELECT USER_2 FROM V_ORDER_HEADER WHERE ORDER_NO='",V.Global.sOrder,"'",V.Local.sQuery)
+F.ODBC.Connection!conx.OpenRecordsetRO("rstUser2",V.Local.sQuery)
+F.Intrinsic.Control.If(V.ODBC.conx!rstUser2.EOF,<>,True)
+	V.Global.sUser2.Set(V.ODBC.conx!rstUser2.FieldValRTrim!USER_2)
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rstUser2.Close
+
+Function.Intrinsic.Control.ExitSub
+Function.Intrinsic.Control.Label("GetUser2FromOrder_Err")
+	Function.Intrinsic.Control.If(Variable.Ambient.ErrorNumber,<>,0)
+		Function.Intrinsic.String.Concat("Error Occurred ",Variable.Ambient.ErrorNumber," with description ",Variable.Ambient.ErrorDescription,Variable.Local.sError)
+	Function.Intrinsic.Control.EndIf
+
+
+Program.Sub.GetUser2FromOrder.End
+
+Program.Sub.WriteUser2ToJob.Start
+V.Local.sError.Declare(String)
+V.Local.sQuery.Declare(String)
+
+Function.Intrinsic.Control.SetErrorHandler("WriteUser2ToJob_Err")
+Function.Intrinsic.Control.ClearErrors
+
+F.Intrinsic.Control.If(V.Global.sUser2.Trim,=,"")
+	F.Intrinsic.Control.CallSub(Unload)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Concat("SELECT JOB, SUFFIX, USER_2 FROM WO_USER_FLDS WHERE JOB='",V.Global.sJob,"' AND SUFFIX='",V.Global.sSuffix,"'",V.Local.sQuery)
+F.ODBC.Connection!conx.OpenRecordsetRW("rstUser2",V.Local.sQuery)
+F.Intrinsic.Control.If(V.ODBC.conx!rstUser2.EOF,=,True)
+	F.ODBC.conx!rstUser2.AddNew
+	F.ODBC.conx!rstUser2.Set!JOB(V.Global.sJob)
+	F.ODBC.conx!rstUser2.Set!SUFFIX(V.Global.sSuffix)
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rstUser2.Set!USER_2(V.Global.sUser2)
+F.ODBC.conx!rstUser2.Update
+
+F.ODBC.conx!rstUser2.Close
+
+
+Function.Intrinsic.Control.ExitSub
+Function.Intrinsic.Control.Label("WriteUser2ToJob_Err")
+	Function.Intrinsic.Control.If(Variable.Ambient.ErrorNumber,<>,0)
+		Function.Intrinsic.String.Concat("Error Occurred ",Variable.Ambient.ErrorNumber," with description ",Variable.Ambient.ErrorDescription,Variable.Local.sError)
+	Function.Intrinsic.Control.EndIf
+
+
+
+Program.Sub.WriteUser2ToJob.End
+
+Program.Sub.Unload.Start
+F.ODBC.Connection!conx.Close
+F.Intrinsic.Control.End
+
+
+Program.Sub.Unload.End
+
+
